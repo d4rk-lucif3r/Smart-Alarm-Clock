@@ -6,9 +6,11 @@ which is displayed in the notifications column.
 If the user has selected news and weather checkbox at the
 time of setting an alarm then Each time alarm goes off
 Latest news and weather update is played using text to speech
-Covid news is played evrytime alarm goes off
+Covid news is played every time alarm goes off
 """
 from flask import Flask, redirect, render_template, request
+import json
+import tempfile
 
 from alarms import add_alarm, alarmTobeDeleted, clearAlarms, get_alarms
 from covid_notifications import clear_covid_news, get_covid_data
@@ -20,18 +22,19 @@ from weather import clearAllWeather, get_weather
 
 app = Flask(__name__)
 
+tmpdir = tempfile.gettempdir()
+ideas_filename = pathlib.Path(tmpdir + '/ideas.json')
+
 @app.route('/')
 def home():
     """
     This function is responsible for fetching a list of alarms, current
-    weather, latest news and lates covid data. This data is
+    weather, latest news and latest covid data. This data is
     fetched to be displayed on the main page.
     Whenever the html page refreshes news , weather and covid information
     is also fetched.
     """
-    favicon = 'static\images\logo.ico'
-    #False parameter is provide here so each time  news , weather
-    #and covid info. is fetched it doesnt get played by text_to_speech
+    favicon = 'static/images/logo.ico'
     get_news(False)
     get_weather(False)
     get_covid_data(False)
@@ -52,25 +55,20 @@ def submit():
     title = request.args.get('alarm')
     if title:
         title = title.replace('T', '-')
-        title = title+":00"
+        title = title + ":00"
 
     label = request.args.get('two')
     isNews = request.args.get('news')
-    if isNews == "news":
-        isNews = "News Enabled"
-    else:
-        isNews = "News Not enabled"
-
     isWeather = request.args.get('weather')
-    if isWeather == "weather":
-        isWeather = "Weather Enabled"
-    else:
-        isWeather = "Weather Not enabled"
+
+    isNews = "News Enabled" if isNews == "news" else "News Not enabled"
+    isWeather = "Weather Enabled" if isWeather == "weather" else "Weather Not enabled"
+
     if title:
-        alarm = ({'title': title,
-                  'label': label,
-                  'news': isNews,
-                  'weather': isWeather})
+        alarm = {'title': title,
+                 'label': label,
+                 'news': isNews,
+                 'weather': isWeather}
         add_alarm(alarm)
         return redirect('/')
 
@@ -84,15 +82,14 @@ def delete_alarm():
     return redirect('/')
 
 
-@app.route('/notification-clear',
-                  methods=['GET', 'POST'])
+@app.route('/notification-clear', methods=['GET', 'POST'])
 def notification_clear_function():
     """Refer to clear notification docstring in notifications.py"""
     notification_clear()
     return redirect('/')
 
 
-@app.route('/clear',  methods=['GET', 'POST'])
+@app.route('/clear', methods=['GET', 'POST'])
 def clearAll():
     """
     This function calls all clearing functions from all modules
@@ -107,5 +104,37 @@ def clearAll():
     return redirect('/')
 
 
+@app.route('/merge_ideas', methods=['POST'])
+def merge_ideas():
+    """
+    This function combines similar ideas from the ideas.json file,
+    merging duplicates into a single entry and storing the merged
+    result back into the file.
+    """
+    if ideas_filename.is_file():
+        with open(tmpdir + '/ideas.json', 'r') as ideas_file:
+            try:
+                ideas_list = json.load(ideas_file)
+            except (json.JSONDecodeError, Exception):
+                ideas_list = []
+        
+        # Logic to merge duplicate ideas
+        merged_ideas = {}
+        for idea in ideas_list:
+            if idea['title'] in merged_ideas:
+                merged_ideas[idea['title']]['count'] += 1
+            else:
+                merged_ideas[idea['title']] = {'details': idea['details'], 'count': 1}
+        
+        # Creating the final merged list
+        new_ideas_list = [{'title': title, 'details': details['details'], 'count': details['count']} for title, details in merged_ideas.items()]
+        
+        with open(tmpdir + '/ideas.json', 'w') as ideas_file:
+            json.dump(new_ideas_list, ideas_file, indent=2)
+
+        info_log("Merged ideas and updated ideas.json")
+    return redirect('/')
+    
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0',debug=True)
+    app.run(host='0.0.0.0', debug=True)
