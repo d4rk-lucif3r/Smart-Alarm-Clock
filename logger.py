@@ -1,13 +1,14 @@
 """This module is responsible for saving logs to the logs.log file."""
 
 import logging
+
 FILENAME = 'assets/logs.log'
 FORMAT = '%(levelname)s: %(asctime)s %(message)s'
 
 
 def info_log(message: str) -> None:
     """
-    Logs info such as an alarm going off, weather change , a new
+    Logs info such as an alarm going off, weather change, a new
     news story or a covid update.
     """
     logging.basicConfig(filename=FILENAME, level=logging.DEBUG,
@@ -35,7 +36,7 @@ def error_log(message: str) -> None:
     logging.error(message)
 
 
-def clearLogs():
+def clearLogs() -> None:
     """
     This function is responsible for clearing logs in
     "logs.log" each time reset button on UI 
