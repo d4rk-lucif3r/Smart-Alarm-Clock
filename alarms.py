@@ -3,13 +3,13 @@ This Module is responsible for all the alarms and providing
 scheduled notifications
 """
 
-
-
 import datetime
 import json
 import sched
 import time
 from threading import Thread
+import tempfile
+import pathlib
 
 import schedule
 from flask import request
@@ -20,8 +20,7 @@ from news import get_news
 from notifications import new_notification
 from text_to_speech import tts
 from weather import get_weather
-import pathlib
-import tempfile
+
 tmpdir = tempfile.gettempdir()
 filename = pathlib.Path(tmpdir+'/alarms.json')
 
@@ -53,7 +52,6 @@ def add_alarm(alarm: dict) -> list:
     alarm_thread = Thread(target=start_alarm, args=(), daemon=True)
     alarm_thread.start()
 
-
 def get_alarms() -> dict:
     """
     This function reads the alarms.json file and returns its contents to
@@ -73,10 +71,8 @@ def get_alarms() -> dict:
             alarms_file.close()
             print("alarm file closed")
     return []
-    
 
-
-def alarmTobeDeleted():
+def alarmTobeDeleted() -> None:
     """
     This function allows the user to delete an alarm. The alarm time to
     be deleted is fetched using the request module into alarmToBeDelted variable.
@@ -88,8 +84,7 @@ def alarmTobeDeleted():
         alarmToBeDeleted = alarmToBeDeleted.replace('T', ' ')
     delete_alarm(alarmToBeDeleted)
 
-
-def delete_alarm(alarmToBeDeleted):
+def delete_alarm(alarmToBeDeleted) -> None:
     """
     This function takes an alarm argument which is to be deleted.
     Creates a new alarms object. The old alarms gets daved in "alarms_list"
@@ -116,7 +111,6 @@ def delete_alarm(alarmToBeDeleted):
     with open(tmpdir+'/alarms.json', 'w') as alarms_file:
         json.dump(new_alarm_objects, alarms_file, indent=2)
     info_log("deleted alarm"+alarmToBeDeleted)
-
 
 def start_alarm() -> None:
     """
@@ -153,7 +147,7 @@ def start_alarm() -> None:
         if alarm['weather'] == "Weather Enabled":
             weather_call = True
 
-        # If the alarm is set at a time that is eariler than the
+        # If the alarm is set at a time that is earlier than the
         # time of the alarm, add 24 hours to the time.
         if final_time < 0:
             final_time += DAY
@@ -164,40 +158,36 @@ def start_alarm() -> None:
     alarm_schedule.run()
     schedule.run_pending()
 
-
 def alarm_end(alarm_time: datetime.datetime, alarm: dict, news_call: bool, weather_call: bool) -> None:
     """
     This function runs when an alarm has gone off. The notification and log
     dictionaries are created including the necessary alarm data. 
     If the user has checked news and weather checkboxes then news and weather information
-    will be played. Covid Data Nwews will be plaayed on every alarm
+    will be played. Covid Data News will be played on every alarm
     """
     # Alarm Go off notification created
-    alarm_notification = ({'timestamp': time.strftime('%H:%M:%S'),
-                           'type': 'Alarm',
-                           'title': ' Alarm scheduled for ' +
-                                    str(alarm_time) +
-                                    ' has gone off.',
-                           'description': ''
-                           })
-    alarm_log = ({'timestamp': time.strftime('%H:%M:%S'),
-                  'type': 'alarm',
-                  'description': 'Alarm scheduled for ' +
-                                 str(alarm_time) +
-                                 ' has gone off.',
-                  'error': ''
-                  })
+    alarm_notification = ({
+        'timestamp': time.strftime('%H:%M:%S'),
+        'type': 'Alarm',
+        'title': ' Alarm scheduled for ' + str(alarm_time) + ' has gone off.',
+        'description': ''
+    })
+    alarm_log = ({
+        'timestamp': time.strftime('%H:%M:%S'),
+        'type': 'alarm',
+        'description': 'Alarm scheduled for ' + str(alarm_time) + ' has gone off.',
+        'error': ''
+    })
     new_notification(alarm_notification)
     info_log(alarm_log)
     tts("Alarm  "+str(alarm_time)+"has gone off")
-    if news_call == True:
+    if news_call:
         get_news(True)
-    if weather_call == True:
+    if weather_call:
         get_weather(True)
     get_covid_data(True)
 
-
-def clearAlarms():
+def clearAlarms() -> None:
     """
     This functions clears alarms.json file's content when reset button is clicked on 
     UI.
