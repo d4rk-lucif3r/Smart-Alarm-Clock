@@ -1,15 +1,14 @@
 """
-This Module is responsible for all the alarms and providing 
+This Module is responsible for all the alarms and providing
 scheduled notifications
 """
-
-
 
 import datetime
 import json
 import sched
 import time
 from threading import Thread
+import requests
 
 import schedule
 from flask import request
@@ -22,6 +21,7 @@ from text_to_speech import tts
 from weather import get_weather
 import pathlib
 import tempfile
+
 tmpdir = tempfile.gettempdir()
 filename = pathlib.Path(tmpdir+'/alarms.json')
 
@@ -53,7 +53,6 @@ def add_alarm(alarm: dict) -> list:
     alarm_thread = Thread(target=start_alarm, args=(), daemon=True)
     alarm_thread.start()
 
-
 def get_alarms() -> dict:
     """
     This function reads the alarms.json file and returns its contents to
@@ -73,8 +72,6 @@ def get_alarms() -> dict:
             alarms_file.close()
             print("alarm file closed")
     return []
-    
-
 
 def alarmTobeDeleted():
     """
@@ -87,7 +84,6 @@ def alarmTobeDeleted():
     if alarmToBeDeleted:
         alarmToBeDeleted = alarmToBeDeleted.replace('T', ' ')
     delete_alarm(alarmToBeDeleted)
-
 
 def delete_alarm(alarmToBeDeleted):
     """
@@ -117,12 +113,11 @@ def delete_alarm(alarmToBeDeleted):
         json.dump(new_alarm_objects, alarms_file, indent=2)
     info_log("deleted alarm"+alarmToBeDeleted)
 
-
 def start_alarm() -> None:
     """
     This function is responsible for setting timers for each alarm.
     For each alarm, the difference in time between now and the time of
-    the alarm  and adds each alarm to the
+    the alarm and adds each alarm to the
     schedular. This function runs on a separate thread each time the
     user loads the program.
     """
@@ -153,7 +148,7 @@ def start_alarm() -> None:
         if alarm['weather'] == "Weather Enabled":
             weather_call = True
 
-        # If the alarm is set at a time that is eariler than the
+        # If the alarm is set at a time that is earlier than the
         # time of the alarm, add 24 hours to the time.
         if final_time < 0:
             final_time += DAY
@@ -164,13 +159,12 @@ def start_alarm() -> None:
     alarm_schedule.run()
     schedule.run_pending()
 
-
 def alarm_end(alarm_time: datetime.datetime, alarm: dict, news_call: bool, weather_call: bool) -> None:
     """
     This function runs when an alarm has gone off. The notification and log
     dictionaries are created including the necessary alarm data. 
     If the user has checked news and weather checkboxes then news and weather information
-    will be played. Covid Data Nwews will be plaayed on every alarm
+    will be played. Covid Data News will be played on every alarm
     """
     # Alarm Go off notification created
     alarm_notification = ({'timestamp': time.strftime('%H:%M:%S'),
@@ -195,7 +189,6 @@ def alarm_end(alarm_time: datetime.datetime, alarm: dict, news_call: bool, weath
     if weather_call == True:
         get_weather(True)
     get_covid_data(True)
-
 
 def clearAlarms():
     """
